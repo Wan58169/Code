@@ -1,0 +1,33 @@
+1.如果container自带sort()，那就
+用container的sort()，而不是algorithm的sort();
+algorithm的 sort()只能
+用于具有RandomAccessIterator特性的container。
+
+2.unordered container底层实现是hashTable，
+associative container底层实现是RB-Tree。
+
+3.sequence container
+priority_queue->heap->vector
+stack/queue->deque
+
+4.list's iterator
+prefix form
+self& operator++() { node = (link_type)((*node).next); return *this; }
+
+postfix form
+self operator++(int) { self tmp = *this; ++*this; return tmp; }
+postfix的第二步，++*this，调用的是prefix
+
+#向偶像致敬#
+prefix form的return-by-reference是因为int i，++++i -> ++(++i)是成立的
+postfix form的return-by-value是因为int i，i++++ -> (i++)++是不成立的 
+
+5.iterator必须提供的5种associated type
+iterator_category：根据iterator可++可--或以何种步幅进行++或--操作进行分类
+value_type：iterator所指的数据类型
+difference_type：iteratorA和iteratorB之间的距离可用何种数据类型（int）表示？
+
+6.traits特性
+traits实质就是中间层啦，而且这个traits机器必须有能力分辨它所获得的iterator是class iterator T还是native pointer to T
+
+

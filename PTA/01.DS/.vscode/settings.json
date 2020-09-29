@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "typeinfo": "cpp",
+        "iostream": "cpp",
+        "utility": "cpp",
+        "map": "cpp",
+        "queue": "cpp",
+        "ostream": "cpp",
+        "xstring": "cpp"
+    }
+}

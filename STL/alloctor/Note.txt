@@ -1,0 +1,31 @@
+1.不要去使用allocator，而是应该把精力花在使用容器上。
+学习allocator只是为了让我们了解内存管理。
+
+2.VC6、BC++和GCC2.9的allocator只是
+以::operator new
+和::operator delete
+完成allocate()和deallocate，
+没有任何特殊的设计。
+
+3.所有的allocator最终的操作都会统一到malloc()和free()上来。
+
+4.通过malloc()实际得到的内存空间，
+会比申请的要大一些，其中
+内存管理信息（cookie）一般占固定大小，一种开销（浪费）。
+【注】比例 = 申请的空间/实际所得的空间
+如果申请的空间是一小块，那么比例会很大（不合算）；
+如果申请的空间是一大块，那么比例会很小；
+
+5.GCC2.9 SGI STL所用的alloc是
+类似于数组+链表的数据结构（桶状），
+#0~#15分别负责分配以8字节倍数为单位的内存块。
+程序刚起来的时候，OS会给程序默认大小的内存，
+这些内存会挂载到相应的#?上，然后再
+通过8字节整数倍切割进行管理。
+虽然先前可能浪费了一些内存，但是很有效率，
+体现在malloc()的次数减少
+和弃用cookie（额外开销）。
+reallocate也是同样的道理。
+【注】GCC4.9的__pool__alloc就是GCC2.9的alloc。
+优化的选择：vector<string, __gnu_cxx::__pool__alloc<string> > v;
+

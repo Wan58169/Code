@@ -1,0 +1,15 @@
+13
+int
+float
+double
+char
+string
+const
+scanf
+printf
+long
+define
+typedef
+struct
+FILE
+

@@ -1,0 +1,139 @@
+以下代码是父子进程交替打印变量counter的值。
+由于fork之后子进程会复制父进程的堆栈，信号处理函数，信号屏蔽字，在下面的程序会根据counter的不同初值进行分别。
+
+#include <stdio.h>  
+#include <signal.h>  
+#include <unistd.h>  
+#include <stdlib.h>  
+#include <string.h>  
+  
+sigset_t newset, zeroset;  
+static int counter = 1;  
+static int sigFlag = 0;  
+  
+void sig_handler(int signo)  
+{  
+    if (signo == SIGUSR1 || signo == SIGUSR2)  
+    {  
+        sigFlag = 1;  
+    }  
+}  
+  
+void tell_wait()  
+{  
+    sigemptyset(&newset);  
+    sigemptyset(&zeroset);  
+    sigaddset(&newset, SIGUSR1);  
+    sigaddset(&newset, SIGUSR2);  
+      
+    struct sigaction action;  
+    action.sa_handler = sig_handler;  
+    sigemptyset(&action.sa_mask);  
+    action.sa_flags = 0;  
+      
+    if (sigaction(SIGUSR1, &action, NULL) < 0)  
+    {  
+        printf("sigaction error\n");  
+        exit(-1);  
+    }  
+      
+    if (sigaction(SIGUSR2, &action, NULL) < 0)  
+    {  
+        printf("sigaction error\n");  
+        exit(-1);  
+    }  
+      
+    if (sigprocmask(SIG_BLOCK, &newset, NULL) < 0)  
+    {  
+        printf("sigprocmask error\n");  
+        exit(-1);  
+    }  
+}  
+  
+void tell_parent(pid_t pid)  
+{  
+    kill(pid, SIGUSR2);  
+}  
+  
+void wait_parent()  
+{  
+    while(sigFlag == 0)  
+    {  
+        sigsuspend(&zeroset);  
+    }  
+      
+    sigFlag = 0;  
+      
+    if (sigprocmask(SIG_BLOCK, &newset, NULL) < 0)  
+    {  
+        printf("set sigprocmask error\n");  
+        exit(-1);  
+    }  
+}  
+  
+void tell_child(pid_t pid)  
+{  
+    kill(pid, SIGUSR1);  
+}  
+  
+void wait_child()  
+{  
+    while(sigFlag == 0)  
+    {  
+        sigsuspend(&zeroset);  
+    }  
+      
+    sigFlag = 0;  
+      
+    if (sigprocmask(SIG_BLOCK, &newset, NULL) < 0)  
+    {  
+        printf("set sigprocmask error\n");  
+        exit(-1);  
+    }  
+}  
+  
+int main(int argc, char **argv)  
+{  
+    pid_t pid;  
+      
+    tell_wait();  
+    if ((pid = fork()) < 0) //创建进程失败 
+    {  
+        perror("fork");  
+        return -1;  
+    }  
+    else if(pid == 0) //子进程 
+    {  
+        counter = 0;  
+        while(1)  
+        {  
+            wait_parent();  
+            counter+=2;  
+            char line[128] = {0};   
+            sprintf(line, "#========child: %d\n", counter);  
+            write(STDOUT_FILENO, line, strlen(line));   
+            //printf("#========child: %d\n", counter);  
+            tell_parent(getppid());  
+        }  
+    }  
+    else  //父进程
+    {  
+        counter = -1;  
+        while(1)  
+        {  
+            counter+=2;  
+            char line[128] = {0};   
+            sprintf(line, "#===parent: %d\n", counter);  
+            write(STDOUT_FILENO, line, strlen(line));   
+            //printf("#===parent: %d\n", counter);  
+            tell_child(pid);  
+            wait_child();  
+        }  
+          
+        waitpid(pid, NULL, 0);  
+    }  
+  
+    return 0;  
+}  
+需要注意的地方是注释的printf部分，使用printf将输出(./a.out >> test)重定向到文件的时候，不会出现这种交替打印的结果。
+原因是，重定向到的文件是全缓冲，printf是带缓冲的，会缓冲到一定程度才能从内存缓冲中输出到文件。
